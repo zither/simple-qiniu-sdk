@@ -9,4 +9,4 @@ simple-qiniu-sdk
 
 ### 在线测试
 
-    [http://pencily.sinaapp.com/test.php](http://pencily.sinaapp.com/test.php)
+[http://pencily.sinaapp.com/test.php](http://pencily.sinaapp.com/test.php)
