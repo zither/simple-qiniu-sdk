@@ -6,6 +6,8 @@ simple-qiniu-sdk
 ### 依赖
 
     PHP >= 5.3
+    ext-curl
+    ext-json
 
 ### 在线测试
 
