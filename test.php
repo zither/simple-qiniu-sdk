@@ -13,8 +13,8 @@ require "qiniu/Qiniu/Client.php";
 
 // 实例化七牛 SDK
 $config = array(
-            'access_key' => '0F3voXBqm0U6ZkNUGyG-S5g-kbxRXAUqPqB_1xR_',
-            'secret_key' => '5_btnFsr4f3a6yaXUsijXUCaeW8RL4E5tXcZk3Ik');
+            'access_key' => '你的 access_key',
+            'secret_key' => '你的 secret_key');
 $sdk = new \Qiniu\Client($config);
 
 // 请设置为你自己的 bucket 名称
