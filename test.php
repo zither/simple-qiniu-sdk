@@ -13,9 +13,8 @@ require "qiniu/Qiniu/Client.php";
 
 // 实例化七牛 SDK
 $config = array(
-            'access_key' => '你的 access_key',
-            'secret_key' => '你的 secret_key'
-            );
+            'access_key' => '0F3voXBqm0U6ZkNUGyG-S5g-kbxRXAUqPqB_1xR_',
+            'secret_key' => '5_btnFsr4f3a6yaXUsijXUCaeW8RL4E5tXcZk3Ik');
 $sdk = new \Qiniu\Client($config);
 
 // 请设置为你自己的 bucket 名称
@@ -133,7 +132,10 @@ if (!empty($_FILES)) {
                                         $('#loading').hide();
                                         $('#success').css('visibility', 'visible');
                                     },
-                            error:function(){$('#error').html('图片上传失败，请刷新后重试。')}
+                            error:function(){
+                                        $('#loading').hide();
+                                        $('#error').html('图片上传失败，请刷新后重试。')
+                                    }
                         });
                 }); 
         </script> 
@@ -149,6 +151,8 @@ if (!empty($_FILES)) {
             <li>直接获取upToken：$sdk->getUpToken($policy)</li>
             <li>上传字符串：$sdk->putString($bucket, $key, $content)</li>
             <li>上传本地文件：$sdk->putFile($bucket, $key, $body, $params)</li>
+            <li>获取公开文件下载地址：$sdk->getPublicUrl('public-bucket.qiniudn.com', '404.jpg')</li>
+            <li>获取私有文件下载地址：$sdk->getPrivateUrl('private-bucket.qiniudn.com', '404.jpg')</li>
         </ul>
     </div>
     <span>源码下载地址：<a href="https://github.com/zither/simple-qiniu-sdk">https://github.com/zither/simple-qiniu-sdk</a></span>
@@ -157,7 +161,7 @@ if (!empty($_FILES)) {
     <span>在线测试：</span>
     <br />
     <br />
-    <form id="myForm" method="post" action="http://dev.pencily.com/test.php" enctype="multipart/form-data">
+    <form id="myForm" method="post" action="test.php" enctype="multipart/form-data">
         <input name="file" type="file" />
         <button id="upload" type="submit">上传到七牛</button>
     </form>
@@ -170,4 +174,3 @@ if (!empty($_FILES)) {
     </div>
     <div id="error"></div>
 </html>
-

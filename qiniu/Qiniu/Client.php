@@ -186,7 +186,37 @@ class Client
         $request = $this->getMultiRequest($bucket, $key, $body, $putExtra);
         return $this->http->call($request);
     }
+
+    /**
+     * 获取私有文件下载地址
+     *
+     * @param $domain
+     * @param $key
+     * @param $expires
+     *
+     * @return string
+     */
+    public function getPrivateUrl($domain, $key, $expires = 3600)
+    {
+        $baseUrl = $this->getDeadlineUrl($domain, $key, $expires);
+        $token = $this->auth->sign($baseUrl);
+        return $baseUrl . '&token=' . $token;
+    }
     
+    /**
+     * 获取共有文件下载地址
+     *
+     * @param $domain
+     * @param $key
+     *
+     * @return string 
+     */
+    public function getPublicUrl($domain, $key)
+    {
+        $keyEsc = rawurlencode($key);
+        return "http://$domain/$keyEsc";
+    }
+
     /**
      * 获取已签名的 Request 类
      *
@@ -283,5 +313,39 @@ class Client
         $request = new \Qiniu\Http\Request($url, $data);
         $req->Header['Content-Type'] = 'multipart/form-data';
         return $request;
+    }
+        
+    /**
+     * 获取downloadToken
+     *
+     * @param $deadlineUrl
+     *
+     * @return string
+     */
+    public function getDownloadToken($deadlineUrl)
+    {
+        return $this->auth->sign($deadlineUrl);
+    }
+    
+    /**
+     * 为下载链接添加过期时间
+     *
+     * @param $domain
+     * @param $key
+     * @param $expires
+     *
+     * @return string
+     */
+    public function getDeadlineUrl($domain, $key, $expires = 3600)
+    {
+        $deadline = $expires + time();
+        $baseUrl = $this->getPublicUrl($domain, $key);
+        $pos = strpos($baseUrl, '?');
+        if ($pos !== false) {
+            $baseUrl .= '&e=';
+        } else {
+            $baseUrl .= '?e=';
+        }
+        return $baseUrl .= $deadline;        
     }
 }
