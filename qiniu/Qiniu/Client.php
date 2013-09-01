@@ -311,7 +311,7 @@ class Client
         $data = $this->http->getMultiData($bucket, $key, $body, $putExtra);
         $url = array('path' => \Qiniu\Config::QINIU_UP_HOST);
         $request = new \Qiniu\Http\Request($url, $data);
-        $req->Header['Content-Type'] = 'multipart/form-data';
+        $request->Header['Content-Type'] = 'multipart/form-data';
         return $request;
     }
         
