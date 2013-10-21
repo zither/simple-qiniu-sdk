@@ -285,7 +285,7 @@ class Client
                 $body = http_build_query($body);
             }
         }
-        $request = new\Qiniu\Http\Request($url, $body);
+        $request = new \Qiniu\Http\Request($url, $body);
         if ($contentType !== 'multipart/form-data') {
             $request->header['Content-Type'] = $contentType;
         }
