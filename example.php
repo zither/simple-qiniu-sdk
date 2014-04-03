@@ -160,7 +160,7 @@ if (!empty($_FILES)) {
     <span>在线测试：</span>
     <br />
     <br />
-    <form id="myForm" method="post" action="test.php" enctype="multipart/form-data">
+    <form id="myForm" method="post"  enctype="multipart/form-data">
         <input name="file" type="file" />
         <button id="upload" type="submit">上传到七牛</button>
     </form>
