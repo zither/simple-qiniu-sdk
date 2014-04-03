@@ -5,7 +5,6 @@
  * @author JonChou <ilorn.mc@gmail.com>
  * @date 2013-08-29
  */
-
 require "qiniu/Qiniu/Client.php";
 
 // 如果你使用 composer,请不要注册自带的 autoloader。
@@ -13,12 +12,12 @@ require "qiniu/Qiniu/Client.php";
 
 // 实例化七牛 SDK
 $config = array(
-            'access_key' => '你的 access_key',
-            'secret_key' => '你的 secret_key');
+            'access_key' => 'Your access key',
+            'secret_key' => 'Your secret key');
 $sdk = new \Qiniu\Client($config);
 
 // 请设置为你自己的 bucket 名称
-$bucket = 'pencily';
+$bucket = 'sketch';
 // 测试用的文件名 key
 $key = 'test.png';
 
@@ -42,7 +41,7 @@ $params = array(
 
 if (!empty($_FILES)) {
     // 如果你只需要简单上传本地文件，这个参数设为本地文件路径即可
-    // $body = '/home/user/images/test.png';
+    //$body = '@' . $_FILES['file']['tmp_name'];
     // 需要自定义变量时需使用数组形式
     $body = array(
                 // 本地文件路径
@@ -52,7 +51,7 @@ if (!empty($_FILES)) {
                 'x:description' => '如果你看到这句话，就说明自定义变量(x:description)生效了。'
                 );
     // 上传文件函数
-    list($return, $error) = $sdk->putFile($bucket, 'test/' . $_FILES['file']['name'], $body, $params);
+    list($return, $error) = $sdk->putFile($bucket, 'test/' . time() . '.jpg', $body, $params);
     if ($error !== null) {
         echo json_encode($error);
     } else {
@@ -114,7 +113,7 @@ if (!empty($_FILES)) {
     <meta charset="utf-8">
     <head> 
         <script src="http://ajax.googleapis.com/ajax/libs/jquery/1.7/jquery.js"></script> 
-        <script src="http://malsup.github.com/jquery.form.js"></script> 
+        <script src="http://sketch.qiniudn.com/jquery.form.js"></script> 
         <script> 
             // wait for the DOM to be loaded 
             $(document).ready(function() { 
@@ -127,7 +126,7 @@ if (!empty($_FILES)) {
                                         $('#myForm').hide();
                                     },
                             success:function(data){
-                                        $('#image').attr('src', 'http://pencily.qiniudn.com/'+ data.key);
+                                        $('#image').attr('src', 'http://sketch.qiniudn.com/'+ data.key);
                                         $('#description').html('你上传的图片为'+data.key+','+data.description);
                                         $('#loading').hide();
                                         $('#success').css('visibility', 'visible');
@@ -166,7 +165,7 @@ if (!empty($_FILES)) {
         <button id="upload" type="submit">上传到七牛</button>
     </form>
     <div id="loading" style="visibility:hidden">
-        <img src="http://loadinggif.com/images/image-selection/3.gif"><br />图片上传中....
+        <img src="http://pencily.qiniudn.com/3.gif"><br />图片上传中....
     </div>
     <div id="success" style="visibility:hidden">
         <div id="description"></div>

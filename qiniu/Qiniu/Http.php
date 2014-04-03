@@ -110,8 +110,8 @@ class Http
 
     public function getMultiData($bucket, $key, $body, $putExtra)
     {
-        $fields = array_merge($body, array('token' => $bucket->token));
-        //$fields = array('token' => $bucket->token, 'file' => '@' . $localFile);
+        //$fields = array_merge($body, array('token' => $bucket->token));
+        $fields = array('token' => $bucket->token);
         if ($key === null) {
             $fname = '?';
         } else {
@@ -126,7 +126,12 @@ class Http
             }
             $fields['crc32'] = sprintf('%u', $putExtra->crc32);
         }
-        return $fields;
+        if (isset($body['file']) && (strpos($body['file'], '@') === false)) {
+            $files = array(array('file', $fname, file_get_contents($body['file'])));
+            return array('fields' => $fields, 'files' => $files);
+        } else {
+            return array_merge($fields, $body);
+        }
     }
 
     public function makeRequest($req) // => ($resp, $error)

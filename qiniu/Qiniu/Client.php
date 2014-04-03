@@ -285,7 +285,7 @@ class Client
                 $body = http_build_query($body);
             }
         }
-        $request = new \Qiniu\Http\Request($url, $body);
+        $request = new\Qiniu\Http\Request($url, $body);
         if ($contentType !== 'multipart/form-data') {
             $request->header['Content-Type'] = $contentType;
         }
@@ -307,11 +307,18 @@ class Client
         if ($putExtra === null) {
             $putExtra = new \Qiniu\PutExtra();
         }
-        $body = is_array($params) && isset($params['file']) ? $params : array('file' => '@' . $params);
-        $data = $this->http->getMultiData($bucket, $key, $body, $putExtra);
+
+        $params = is_array($params) && isset($params['file']) ? $params : array('file' => $params);
+        $data = $this->http->getMultiData($bucket, $key, $params, $putExtra);
+        if (!empty($data['files'])) {
+            list($contentType, $body) = $this->http->buildMultipartForm($data['fields'], $data['files']);
+        } else {
+            $body = $data;
+            $contentType = 'multipart/form-data';
+        }
         $url = array('path' => \Qiniu\Config::QINIU_UP_HOST);
-        $request = new \Qiniu\Http\Request($url, $data);
-        $request->Header['Content-Type'] = 'multipart/form-data';
+        $request = new \Qiniu\Http\Request($url, $body);
+        $request->header['Content-Type'] = $contentType;
         return $request;
     }
         

@@ -8,7 +8,7 @@ class PutExtra
     public $crc32 = 0;
     public $checkCrc = 0;
 
-    public function __construct($config)
+    public function __construct($config = array())
     {
         if (isset($config['params'])) {
             $this->params = $config['params'];
