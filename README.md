@@ -8,7 +8,3 @@ simple-qiniu-sdk
     PHP >= 5.3
     ext-curl
     ext-json
-
-### 在线测试
-
-[http://pencily.sinaapp.com/qiniu.php](http://pencily.sinaapp.com/qiniu.php)
