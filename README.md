@@ -9,6 +9,7 @@ simple-qiniu-sdk
     ext-curl
     ext-json
 
-### 在线测试
-
-[http://pencily.sinaapp.com/qiniu.php](http://pencily.sinaapp.com/qiniu.php)
+### 说明
+    
+重写之前的 Simple Qiniu SDK，目前只实现了上传文件
+前版本已经停止维护，移动到：[https://github.com/zither/simple-qiniu-sdk/tree/old-version](https://github.com/zither/simple-qiniu-sdk/tree/old-version)。

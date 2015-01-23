@@ -8,10 +8,10 @@ class Response
     public $contentLength;
     public $body;
 
-    public function __construct($code, $body)
+    public function __construct($code, $header = array(), $body)
     {
         $this->statusCode = $code;
-        $this->header = array();
+        $this->header = $header;
         $this->body = $body;
         $this->contentLength = strlen($body);
     }

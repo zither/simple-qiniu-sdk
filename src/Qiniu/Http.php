@@ -108,70 +108,65 @@ class Http
         return array('fields' => $fields, 'files' => $files);
     }
 
-    public function getMultiData($bucket, $key, $body, $putExtra)
+    public function getMultiData($body, $token, $key)
     {
-        //$fields = array_merge($body, array('token' => $bucket->token));
-        $fields = array('token' => $bucket->token);
-        if ($key === null) {
-            $fname = '?';
-        } else {
-            $fname = $key;
+        $fields = array('token' => $token);
+        if (!is_null($key)) {
             $fields['key'] = $key;
         }
-        if ($putExtra->checkCrc) {
-            if ($putExtra->checkCrc === 1) {
-                $hash = hash_file('crc32b', $localFile);
-                $array = unpack('N', pack('H*', $hash));
-                $putExtra->crc32 = $array[1];
-            }
-            $fields['crc32'] = sprintf('%u', $putExtra->crc32);
+
+        if (!isset($body['file'])) {
+            return array('multipart/form-data', $fields);
         }
-        if (isset($body['file']) && (strpos($body['file'], '@') === false)) {
-            $files = array(array('file', $fname, file_get_contents($body['file'])));
-            return array('fields' => $fields, 'files' => $files);
-        } else {
-            return array_merge($fields, $body);
-        }
+
+        $fileInfo = pathinfo($body['file']);
+        $fname = is_null($key) ? $fileInfo['basename'] : $key;
+        $files = array(array('file', $fname, file_get_contents($body['file'])));
+        return $this->buildMultipartForm($fields, $files);
     }
 
-    public function makeRequest($req) // => ($resp, $error)
+    public function makeRequest($request) // => ($resp, $error)
     {
         $ch = curl_init();
-        $url = $req->url;
+        curl_setopt_array($ch, $this->getCurlOptions($request));
+        $result = curl_exec($ch);
+        $returnNumber = curl_errno($ch);
+        if ($returnNumber !== 0) {
+            $error = new \Qiniu\Http\Error(0, curl_error($ch));
+            curl_close($ch);
+            return array(null, $error);
+        }
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
+        curl_close($ch);
+        $response = new \Qiniu\Http\Response(
+            $httpCode, 
+            array('Content-Type' => $contentType), 
+            $result
+        );
+        return array($response, null);
+    }
+
+    public function getCurlOptions($request) 
+    {
         $options = array(
             CURLOPT_RETURNTRANSFER => true,
             CURLOPT_SSL_VERIFYPEER => false,
             CURLOPT_SSL_VERIFYHOST => false,
             CURLOPT_CUSTOMREQUEST  => 'POST',
-            CURLOPT_URL => $url['path']
+            CURLOPT_URL => $request->url
         );
-        $httpHeader = $req->header;
-        if (!empty($httpHeader))
-        {
+        if (!empty($request->header)) {
             $header = array();
-            foreach($httpHeader as $key => $parsedUrlValue) {
-                $header[] = "$key: $parsedUrlValue";
+            foreach($request->header as $key => $value) {
+                $header[] = "$key: $value";
             }
             $options[CURLOPT_HTTPHEADER] = $header;
         }
-        $body = $req->body;
-        if (!empty($body)) {
-            $options[CURLOPT_POSTFIELDS] = $body;
+        if (!empty($request->body)) {
+            $options[CURLOPT_POSTFIELDS] = $request->body;
         }
-        curl_setopt_array($ch, $options);
-        $result = curl_exec($ch);
-        $ret = curl_errno($ch);
-        if ($ret !== 0) {
-            $err = new \Qiniu\Http\Error(0, curl_error($ch));
-            curl_close($ch);
-            return array(null, $err);
-        }
-        $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-        $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
-        curl_close($ch);
-        $response = new \Qiniu\Http\Response($code, $result);
-        $response->header['Content-Type'] = $contentType;
-        return array($response, null);
+        return $options;
     }
 
     public function buildMultipartForm($fields, $files) // => ($contentType, $body)
