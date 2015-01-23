@@ -5,22 +5,28 @@ class Bucket
 {
     const EXTR_OVERWRITE = true;
 
-    // 上传策略容器
-    public $policyContainer = array();
+    // instance 储蓄池
+    public $container = array();
 
     // 保存签名成功的upToken
     public $token = null;
 
-    public $auth;
-    public $http;
-    public $config;
-
     public function __construct($scope, $accessKey, $secretKey)
     {
+        $this->container['auth'] = new \Qiniu\Auth($accessKey, $secretKey);
+        $this->container['http'] = new \Qiniu\Http();
+        $this->container['policy'] = new \Qiniu\Policy();
         $this->setPolicy(array('scope' => $scope));
-        $this->auth = new \Qiniu\Auth($accessKey, $secretKey);
-        $this->http = new \Qiniu\Http();
-        $this->config = new \Qiniu\Config();
+    }
+
+    public function setPolicy($policy)
+    {
+        $this->policy->set($policy);
+    }
+
+    public function getUpToken()
+    {
+        return $this->signPolicy();
     }
 
     public function put($body, $key = null, $overWrite = false)
@@ -36,25 +42,25 @@ class Bucket
 
     protected function setOverwriteScope($key)
     {
-        if (is_null($key) && !$this->policyExists('saveKey')) {
+        if (is_null($key) && !$this->policy->exists('saveKey')) {
             throw new \InvalidArgumentException(
                 "You must set 'key' or 'saveKey' when overWrite is true."
             );
         }
-        $this->setPolicy(array(
-            'scope' => $this->getPolicy('scope') . ':' . $this->getSaveKey($key)
+        $this->policy->set(array(
+            'scope' => $this->policy->get('scope') . ':' . $this->getSaveKey($key)
         ));
     }
 
     protected function getSaveKey($key) 
     {
-        return is_null($key) ? $this->getPolicy('saveKey') : $key;
+        return is_null($key) ? $this->policy->get('saveKey') : $key;
     }
 
     public function signPolicy()
     {
-        $encodePolicy = json_encode($this->getPolicyContainer());
-        $this->token = $this->auth->signWithData($encodePolicy);
+        $encodePolicy = json_encode($this->policy->getContainer());
+        return $this->token = $this->auth->signWithData($encodePolicy);
     }
 
     public function getMultiRequest($params, $key)
@@ -69,49 +75,8 @@ class Bucket
         return $request;
     }
 
-    public function getPolicyContainer()
+    public function __get($name)
     {
-        $expires = 3600;
-        if ($this->policyExists('expires')) {
-            $expires = $this->policyContainer['expires'];
-        }
-        $this->setPolicy(array('deadline' => time() + $expires));
-        return $this->policyContainer;
-    }
-
-    public function getPolicy($name)
-    {
-        return $this->policyExists($name) ? $this->policyContainer[$name] : null;
-    }
-
-    public function setPolicy($policy)
-    {
-        if (!is_array($policy)) {
-            throw new \InvalidArgumentException(
-                'setPolicy method\'s parameter must be an array.'
-            );
-        }
-        $this->mergePolicy($policy);
-    }
-
-    public function mergePolicy($policy)
-    {
-        $defaultPolicy = array(
-            'scope', 'deadline', 'callbackUrl', 'callbackBody', 'returnUrl', 
-            'asyncOps', 'endUser', 'expires', 'insertOnly', 
-            'callbackHost', 'callbackBodyType', 'callbackFetchKey',
-            'persistentOps', 'persistentNotifyUrl', 'persistentPipeline', 'saveKey',
-            'fsizeLimit', 'detectMime', 'mimeLimit', 'returnBody'
-        );
-        foreach ($policy as $key => $value) {
-            if (in_array($key, $defaultPolicy)) {
-                $this->policyContainer[$key] = $value;
-            }
-        }
-    }
-
-    public function policyExists($name)
-    {
-        return isset($this->policyContainer[$name]);
+        return isset($this->container[$name]) ? $this->container[$name] : null;
     }
 }

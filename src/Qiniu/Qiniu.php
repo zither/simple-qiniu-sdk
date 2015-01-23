@@ -15,9 +15,13 @@ class Qiniu
 
     public function getBucket($name)
     {
-        if (isset($this->buckets[$name])) {
-            return $this->buckets[$name];
+        if (!isset($this->buckets[$name])) {
+            $this->buckets[$name] = new \Qiniu\Bucket(
+                $name, 
+                $this->accessKey, 
+                $this->secretKey
+            ); 
         }
-        return new \Qiniu\Bucket($name, $this->accessKey, $this->secretKey); 
+        return $this->buckets[$name]; 
     }
 }

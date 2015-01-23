@@ -3,108 +3,78 @@ namespace Qiniu;
 
 class Http
 {
-    public $client = null;
     public $error = null;
     public $request = null;
     public $response = null;
 
-    public function headerGet($header, $key)
+    public function call($request) // => ($data, $error)
     {
-        $val = @$header[$key];
-        if (isset($val)) {
-            if (is_array($val)) {
-                return $val[0];
-            }
-            return $val;
-        } else {
-            return '';
-        }        
+        list($response, $error) = $this->makeRequest($request);
+        if (!is_null($error)) {
+            return array(null, $error);
+        }
+        return $this->responseData($response);
+    }
+
+    public function callNoResponse($request) // => $error
+    {
+        list($response, $error) = $this->makeRequest($request);
+        if (!is_null($error)) {
+            return array(null, $error);
+        }
+        return $response->statusCode === 200 ? null : $this->responseError($response);
+    }
+
+    public function getHeader($header, $key)
+    {
+        if (!isset($header[$key])) {
+            return null;
+        }
+        return is_array($header[$key]) ? $header[$key][0] : $header[$key];   
     }
 
     public function responseError($response) // => $error
     {
         $header = $response->header;
-        $details = $this->headerGet($header, 'X-Log');
-        $reqId = $this->headerGet($header, 'X-Reqid');
+        $details = $this->getHeader($header, 'X-Log');
+        $reqId = $this->getHeader($header, 'X-Reqid');
         $error = new \Qiniu\Http\Error($response->statusCode, null);
 
-        if ($error->code > 299) {
-            if ($response->contentLength !== 0) {
-                if ($this->headerGet($header, 'Content-Type') === 'application/json') {
-                    $return = json_decode($response->body, true);
-                    $error->error = $return['error'];
-                }
-            }
+        $contentType = $this->getHeader($header, 'Content-Type');
+        if ($error->code > 299 && $response->ContentLength > 0 && $contentType === 'application/json') {
+            $body = json_decode($response->body, true);
+            $error->error = $body['error'];
         }
         return $error;
     }
 
-    public function ret($response) // => ($data, $error)
+    public function responseData($response) // => ($data, $error)
     {
-        $code = $response->statusCode;
-        $data = null;
-        if ($code >= 200 && $code <= 299) {
-            if ($response->contentLength !== 0) {
-                $data = json_decode($response->body, true);
-                if ($data === null) {
-                    $error = new \Qiniu\Http\Error(0, json_last_error_msg());
-                    return array(null, $error);
-                }
-            }
-            if ($code === 200) {
-                return array($data, null);
-            }
+        $statusCode = $response->statusCode;
+        $data = is_null($response->body) ? null : json_decode($response->body, true);
+        if ($statusCode === 200) {
+            return array($data, null);
+        }
+        if ($statusCode >= 200 && $statusCode <= 299 && is_null($data)) {
+            $error = new \Qiniu\Http\Error(0, null);
+            return array(null, $error);
         }
         return array($data, $this->responseError($response));
     }
 
-    public function call($request) // => ($data, $error)
-    {
-        list($response, $error) = $this->makeRequest($request);
-        if ($error !== null) {
-            return array(null, $error);
-        }
-        return $this->ret($response);
-    }
-
-    public function callNoRet($request) // => $error
-    {
-        list($response, $error) = $this->makeRequest($request);
-        if ($error !== null) {
-            return array(null, $error);
-        }
-        if ($response->statusCode === 200) {
-            return null;
-        }
-        return $this->responseError($response);
-    }
-
     public function incBody(\Qiniu\Http\Request $request) // => $incbody
     {
-        $body = $request->body;
-        if (!isset($body)) {
+        if (!isset($request->body)) {
             return false;
         }
-        $ct = $this->headerGet($request->header, 'Content-Type');
-        if ($ct === 'application/x-www-form-urlencoded') {
-            return true;
-        }
-        return false;
+        $contentType = $this->getHeader($request->header, 'Content-Type');
+        return $contentType === 'application/x-www-form-urlencoded' ? true : false;
     }
 
-    public function getStringData($bucket, $key, $body, $putExtra)
+    public function getStringData($body, $token, $key)
     {
-        $fields = array('token' => $bucket->token);
-        if ($key === null) {
-            $fileName = '?';
-        } else {
-            $fileName = $key;
-            $fields['key'] = $key;
-        }
-        if ($putExtra->checkCrc) {
-            $fields['crc32'] = $putExtra->crc32;
-        }
-        $files = array(array('file', $fileName, $body));
+        $fields = array('token' => $token, 'key' => $key);
+        $files = array(array('file', $key, $body));
         return array('fields' => $fields, 'files' => $files);
     }
 
@@ -130,20 +100,17 @@ class Http
         $ch = curl_init();
         curl_setopt_array($ch, $this->getCurlOptions($request));
         $result = curl_exec($ch);
-        $returnNumber = curl_errno($ch);
-        if ($returnNumber !== 0) {
-            $error = new \Qiniu\Http\Error(0, curl_error($ch));
+        $errorNumber = curl_errno($ch);
+        if ($errorNumber) {
+            $error = new \Qiniu\Http\Error($errorNumber, curl_error($ch));
             curl_close($ch);
             return array(null, $error);
         }
         $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
         curl_close($ch);
-        $response = new \Qiniu\Http\Response(
-            $httpCode, 
-            array('Content-Type' => $contentType), 
-            $result
-        );
+        $header = array('Content-Type' => $contentType);
+        $response = new \Qiniu\Http\Response($httpCode, $header, $result);
         return array($response, null);
     }
 
@@ -174,11 +141,11 @@ class Http
         $data = array();
         $mimeBoundary = md5(microtime());
 
-        foreach ($fields as $name => $val) {
+        foreach ($fields as $name => $value) {
             array_push($data, '--' . $mimeBoundary);
             array_push($data, "Content-Disposition: form-data; name=\"$name\"");
             array_push($data, '');
-            array_push($data, $val);
+            array_push($data, $value);
         }
 
         foreach ($files as $file) {
