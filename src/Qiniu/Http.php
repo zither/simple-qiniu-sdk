@@ -1,84 +1,26 @@
 <?php
 namespace Qiniu;
 
+use Qiniu\Config;
+use Qiniu\Http\Request;
+use Qiniu\Http\Response;
+use Qiniu\Http\Error;
+
 class Http
 {
-    public $error = null;
-    public $request = null;
-    public $response = null;
-
-    public function call($request) // => ($data, $error)
+    public function callMultiRequest($params, $token, $key)
     {
-        list($response, $error) = $this->makeRequest($request);
-        if (!is_null($error)) {
-            return array(null, $error);
-        }
-        return $this->responseData($response);
+        $params = is_string($params) ? array('file' => $params) : $params;
+        $data = $this->getMultiData($params, $token, $key);
+
+        list($contentType, $body) = $data;
+        $header = array('Content-Type' => $contentType);
+        $request = new Request(Config::QINIU_UP_HOST, $header, $body);
+
+        return $this->call($request);
     }
 
-    public function callNoResponse($request) // => $error
-    {
-        list($response, $error) = $this->makeRequest($request);
-        if (!is_null($error)) {
-            return array(null, $error);
-        }
-        return $response->statusCode === 200 ? null : $this->responseError($response);
-    }
-
-    public function getHeader($header, $key)
-    {
-        if (!isset($header[$key])) {
-            return null;
-        }
-        return is_array($header[$key]) ? $header[$key][0] : $header[$key];   
-    }
-
-    public function responseError($response) // => $error
-    {
-        $header = $response->header;
-        $details = $this->getHeader($header, 'X-Log');
-        $reqId = $this->getHeader($header, 'X-Reqid');
-        $error = new \Qiniu\Http\Error($response->statusCode, null);
-
-        $contentType = $this->getHeader($header, 'Content-Type');
-        if ($error->code > 299 && $response->ContentLength > 0 && $contentType === 'application/json') {
-            $body = json_decode($response->body, true);
-            $error->error = $body['error'];
-        }
-        return $error;
-    }
-
-    public function responseData($response) // => ($data, $error)
-    {
-        $statusCode = $response->statusCode;
-        $data = is_null($response->body) ? null : json_decode($response->body, true);
-        if ($statusCode === 200) {
-            return array($data, null);
-        }
-        if ($statusCode >= 200 && $statusCode <= 299 && is_null($data)) {
-            $error = new \Qiniu\Http\Error(0, null);
-            return array(null, $error);
-        }
-        return array($data, $this->responseError($response));
-    }
-
-    public function incBody(\Qiniu\Http\Request $request) // => $incbody
-    {
-        if (!isset($request->body)) {
-            return false;
-        }
-        $contentType = $this->getHeader($request->header, 'Content-Type');
-        return $contentType === 'application/x-www-form-urlencoded' ? true : false;
-    }
-
-    public function getStringData($body, $token, $key)
-    {
-        $fields = array('token' => $token, 'key' => $key);
-        $files = array(array('file', $key, $body));
-        return array('fields' => $fields, 'files' => $files);
-    }
-
-    public function getMultiData($body, $token, $key)
+    protected function getMultiData($body, $token, $key)
     {
         $fields = array('token' => $token);
         if (!is_null($key)) {
@@ -86,7 +28,7 @@ class Http
         }
 
         if (!isset($body['file'])) {
-            return array('multipart/form-data', $fields);
+            return array('application/x-www-form-urlencoded', $fields);
         }
 
         $fileInfo = pathinfo($body['file']);
@@ -95,14 +37,88 @@ class Http
         return $this->buildMultipartForm($fields, $files);
     }
 
-    public function makeRequest($request) // => ($resp, $error)
+    protected function call($request)
+    {
+        list($response, $error) = $this->makeRequest($request);
+        if (!is_null($error)) {
+            return array(null, $error);
+        }
+        return $this->responseData($response);
+    }
+
+    protected function callNoResponse($request) // => $error
+    {
+        list($response, $error) = $this->makeRequest($request);
+        if (!is_null($error)) {
+            return array(null, $error);
+        }
+        return $response->statusCode === 200 ? null : $this->responseError($response);
+    }
+
+    protected function getHeader($header, $key)
+    {
+        if (!isset($header[$key])) {
+            return null;
+        }
+        return is_array($header[$key]) ? $header[$key][0] : $header[$key];   
+    }
+
+    protected function responseError($response) // => $error
+    {
+        $header = $response->header;
+        $details = $this->getHeader($header, 'X-Log');
+        $reqId = $this->getHeader($header, 'X-Reqid');
+        $error = new Error($response->statusCode, null);
+
+        $contentType = $this->getHeader($header, 'Content-Type');
+        if (
+            $error->code > 299 
+            && $response->contentLength > 0 
+            && $contentType === 'application/json'
+        ) {
+            $body = json_decode($response->body, true);
+            $error->error = $body['error'];
+        }
+        return $error;
+    }
+
+    protected function responseData($response)
+    {
+        $statusCode = $response->statusCode;
+        $data = is_null($response->body) ? null : json_decode($response->body, true);
+        if ($statusCode === 200) {
+            return array($data, null);
+        }
+        if ($statusCode >= 200 && $statusCode <= 299 && is_null($data)) {
+            return array(null, new Error(0, null));
+        }
+        return array($data, $this->responseError($response));
+    }
+
+    protected function incBody(Request $request)
+    {
+        if (!isset($request->body)) {
+            return false;
+        }
+        $contentType = $this->getHeader($request->header, 'Content-Type');
+        return $contentType === 'application/x-www-form-urlencoded' ? true : false;
+    }
+
+    protected function getStringData($body, $token, $key)
+    {
+        $fields = array('token' => $token, 'key' => $key);
+        $files = array(array('file', $key, $body));
+        return array('fields' => $fields, 'files' => $files);
+    }
+
+    protected function makeRequest($request)
     {
         $ch = curl_init();
         curl_setopt_array($ch, $this->getCurlOptions($request));
         $result = curl_exec($ch);
         $errorNumber = curl_errno($ch);
         if ($errorNumber) {
-            $error = new \Qiniu\Http\Error($errorNumber, curl_error($ch));
+            $error = new Error($errorNumber, curl_error($ch));
             curl_close($ch);
             return array(null, $error);
         }
@@ -110,11 +126,11 @@ class Http
         $contentType = curl_getinfo($ch, CURLINFO_CONTENT_TYPE);
         curl_close($ch);
         $header = array('Content-Type' => $contentType);
-        $response = new \Qiniu\Http\Response($httpCode, $header, $result);
+        $response = new Response($httpCode, $header, $result);
         return array($response, null);
     }
 
-    public function getCurlOptions($request) 
+    protected function getCurlOptions($request) 
     {
         $options = array(
             CURLOPT_RETURNTRANSFER => true,
@@ -124,11 +140,9 @@ class Http
             CURLOPT_URL => $request->url
         );
         if (!empty($request->header)) {
-            $header = array();
             foreach($request->header as $key => $value) {
-                $header[] = "$key: $value";
+                $options[CURLOPT_HTTPHEADER][] = sprintf("%s: %s", $key, $value);
             }
-            $options[CURLOPT_HTTPHEADER] = $header;
         }
         if (!empty($request->body)) {
             $options[CURLOPT_POSTFIELDS] = $request->body;
@@ -136,7 +150,7 @@ class Http
         return $options;
     }
 
-    public function buildMultipartForm($fields, $files) // => ($contentType, $body)
+    protected function buildMultipartForm($fields, $files)
     {
         $data = array();
         $mimeBoundary = md5(microtime());
@@ -166,10 +180,10 @@ class Http
         return array($contentType, $body);
     }
 
-    public function escapeQuotes($str)
+    protected function escapeQuotes($string)
     {
         $find = array("\\", "\"");
         $replace = array("\\\\", "\\\"");
-        return str_replace($find, $replace, $str);
+        return str_replace($find, $replace, $string);
     }
 }

@@ -1,10 +1,12 @@
 <?php
 namespace Qiniu;
 
+use Qiniu\Http\Request;
+
 class Auth
 {
-    public $accessKey = null;
-    public $secretKey = null;
+    protected $accessKey = null;
+    protected $secretKey = null;
 
     public function __construct($accessKey, $secretKey)
     {
@@ -12,19 +14,19 @@ class Auth
         $this->secretKey = $secretKey;
     }
 
-    public function Sign($data) // => $token
+    public function Sign($data)
     {
         $sign = hash_hmac('sha1', $data, $this->secretKey, true);
-        return $this->accessKey . ':' . $this->encode($sign);
+        return sprintf("%s:%s", $this->accessKey, $this->encode($sign));
     }
 
-    public function SignWithData($data) // => $token
+    public function SignWithData($data)
     {
         $data = $this->encode($data);
-        return $this->sign($data) . ':' . $data;
+        return sprintf("%s:%s", $this->sign($data), $data);
     }
 
-    public function SignRequest(\Qiniu\Http\Request $request) // => ($token, $error)
+    public function SignRequest(Request $request)
     {
         $url = $request->url;
         $url = parse_url($url['path']);
@@ -43,10 +45,10 @@ class Auth
         return $this->sign($data);
     }
 
-    public function encode($str) // URLSafeBase64Encode
+    public function encode($string)
     {
         $find = array('+', '/');
         $replace = array('-', '_');
-        return str_replace($find, $replace, base64_encode($str));
+        return str_replace($find, $replace, base64_encode($string));
     }
 }

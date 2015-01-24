@@ -3,14 +3,14 @@ namespace Qiniu\Http;
 
 class Error
 {
-    public $error;	 // string
-    public $reqid;	 // string
-    public $details; // []string
-    public $code;	 // int
+    public $error;
+    public $reqid;
+    public $details;
+    public $code;
 
-    public function __construct($code, $err)
+    public function __construct($code, $error)
     {
         $this->code = $code;
-        $this->error = $err;
+        $this->error = $error;
     }
 }

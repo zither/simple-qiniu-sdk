@@ -1,80 +1,126 @@
 <?php
 namespace Qiniu;
 
+use Qiniu\Auth;
+use Qiniu\Http;
+use Qiniu\Policy;
+
 class Bucket
 {
     const EXTR_OVERWRITE = true;
 
-    // instance 储蓄池
-    public $container = array();
+    /**
+     * @var object[]
+     */
+    protected $container = array();
 
-    // 保存签名成功的upToken
-    public $token = null;
+    /**
+     * @var string
+     */
+    protected $token = null;
 
+    /**
+     * Constructer
+     *
+     * @param $scope bucket name
+     * @param $accessKey
+     * @param $secretKey
+     */
     public function __construct($scope, $accessKey, $secretKey)
     {
-        $this->container['auth'] = new \Qiniu\Auth($accessKey, $secretKey);
-        $this->container['http'] = new \Qiniu\Http();
-        $this->container['policy'] = new \Qiniu\Policy();
+        $this->container['auth'] = new Auth($accessKey, $secretKey);
+        $this->container['http'] = new Http();
+        $this->container['policy'] = new Policy();
         $this->setPolicy(array('scope' => $scope));
     }
 
+    /**
+     * 设置上传策略
+     *
+     * @param $policy
+     */
     public function setPolicy($policy)
     {
         $this->policy->set($policy);
     }
 
+    /**
+     * 获取 upload token
+     *
+     * @return string
+     */
     public function getUpToken()
     {
         return $this->signPolicy();
     }
 
-    public function put($body, $key = null, $overWrite = false)
+    /**
+     * 上传文件，overwrite 为 true 时为 put（更新）模式
+     *
+     * @param $body
+     * @param $key
+     * @param $overwrite
+     *
+     * @return array
+     */
+    public function put($body, $key = null, $overwrite = false)
     {
-        // 允许覆盖原文件
-        if ($overWrite) {
+        if ($overwrite && strpos($this->policy->get('scope'), ':') === false) {
             $this->setOverwriteScope($key);
         }
         $this->signPolicy();
-        $request = $this->getMultiRequest($body, $this->getSaveKey($key));
-        return $this->http->call($request); 
+        $key = $this->getSaveKey($key);
+        return $this->http->callMultiRequest($body, $this->token, $key);
     }
 
+    /**
+     * Overwrite 为真时必须将 scope 设置为 bucket:<key> 模式
+     *
+     * @param $key
+     */
     protected function setOverwriteScope($key)
     {
         if (is_null($key) && !$this->policy->exists('saveKey')) {
             throw new \InvalidArgumentException(
-                "You must set 'key' or 'saveKey' when overWrite is true."
+                "You must set <key> or <saveKey> when overWrite is true."
             );
         }
+        $currentScope = $this->policy->get('scope');
         $this->policy->set(array(
-            'scope' => $this->policy->get('scope') . ':' . $this->getSaveKey($key)
+            'scope' => sprintf("%s:%s", $currentScope, $this->getSaveKey($key))
         ));
     }
 
+    /**
+     * 当 <key> 未设置时尝试从 policy 中获取 <saveKey>
+     *
+     * @param $key
+     *
+     * @return mixed <saveKey> 也未设置则返回 null
+     */
     protected function getSaveKey($key) 
     {
         return is_null($key) ? $this->policy->get('saveKey') : $key;
     }
 
-    public function signPolicy()
+    /**
+     * 上传策略签名
+     *
+     * @return string 返回 upload token
+     */
+    protected function signPolicy()
     {
         $encodePolicy = json_encode($this->policy->getContainer());
         return $this->token = $this->auth->signWithData($encodePolicy);
     }
 
-    public function getMultiRequest($params, $key)
-    {
-        $params = is_string($params) ? array('file' => $params) : $params;
-        list($contentType, $body) = $this->http->getMultiData($params, $this->token, $key);
-        $request = new \Qiniu\Http\Request(
-            \Qiniu\Config::QINIU_UP_HOST,
-            array('Content-Type' => $contentType),
-            $body
-        );
-        return $request;
-    }
-
+    /**
+     * Container getter
+     *
+     * @param $name
+     *
+     * @return object 辅助对象
+     */
     public function __get($name)
     {
         return isset($this->container[$name]) ? $this->container[$name] : null;

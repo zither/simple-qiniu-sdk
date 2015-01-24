@@ -31,10 +31,10 @@ class Config
             . '/' . $this->encode("$bucketDest:$keyDest");
     }
 
-    public function encode($str) // URLSafeBase64Encode
+    public function encode($string)
     {
         $find = array('+', '/');
         $replace = array('-', '_');
-        return str_replace($find, $replace, base64_encode($str));
+        return str_replace($find, $replace, base64_encode($string));
     }
 }
