@@ -20,7 +20,7 @@ class Auth
         return sprintf("%s:%s", $this->accessKey, $this->encode($sign));
     }
 
-    public function SignWithData($data)
+    public function SignData($data)
     {
         $data = $this->encode($data);
         return sprintf("%s:%s", $this->sign($data), $data);

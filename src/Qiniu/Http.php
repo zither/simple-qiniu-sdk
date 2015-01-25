@@ -8,10 +8,10 @@ use Qiniu\Http\Error;
 
 class Http
 {
-    public function callMultiRequest($params, $token, $key)
+    public function callMultiRequest($token, $params, $key)
     {
         $params = is_string($params) ? array('file' => $params) : $params;
-        $data = $this->getMultiData($params, $token, $key);
+        $data = $this->getMultiData($token, $params, $key);
 
         list($contentType, $body) = $data;
         $header = array('Content-Type' => $contentType);
@@ -20,7 +20,7 @@ class Http
         return $this->call($request);
     }
 
-    protected function getMultiData($body, $token, $key)
+    protected function getMultiData($token, $body, $key)
     {
         $fields = array('token' => $token);
         if (!is_null($key)) {

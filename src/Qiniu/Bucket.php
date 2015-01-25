@@ -70,7 +70,7 @@ class Bucket
         }
         $this->signPolicy();
         $key = $this->getSaveKey($key);
-        return $this->http->callMultiRequest($body, $this->token, $key);
+        return $this->http->callMultiRequest($this->token, $body, $key);
     }
 
     /**
@@ -111,7 +111,7 @@ class Bucket
     protected function signPolicy()
     {
         $encodePolicy = json_encode($this->policy->getContainer());
-        return $this->token = $this->auth->signWithData($encodePolicy);
+        return $this->token = $this->auth->signData($encodePolicy);
     }
 
     /**
