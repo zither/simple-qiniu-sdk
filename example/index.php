@@ -19,16 +19,9 @@ $secretKey = 'secretKey';
 $qiniu = new \Qiniu\Qiniu($accessKey, $secretKey);
 
 $bucket = $qiniu->getBucket('sketch');
-$bucket->setPolicy(array(
-    'returnBody' => '{
-        "key": $(key),
-        "name": $(fname)
-    }',
-    'expires' => 3600
-));
 
 if (!empty($_FILES)) {
     // 上传文件函数
-    list($return, $error) = $bucket->put($_FILES['file']['tmp_name'], 'key.jpg', \Qiniu\Bucket::EXTR_OVERWRITE);
-    echo is_null($error) ? json_encode($return) : json_encode($error);
+    $response = $bucket->put($_FILES['file']['tmp_name'], 'key.jpg', \Qiniu\Bucket::EXTR_OVERWRITE);
+    echo $response->getContent();
 }

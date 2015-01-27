@@ -36,11 +36,8 @@ class Policy
             'persistentOps', 'persistentNotifyUrl', 'persistentPipeline',
             'saveKey', 'fsizeLimit', 'detectMime', 'mimeLimit', 'returnBody'
         );
-        foreach ($policy as $key => $value) {
-            if (in_array($key, $defaultPolicy)) {
-                $this->container[$key] = $value;
-            }
-        }
+        $validPolicy = array_intersect_key($policy, array_flip($defaultPolicy));
+        $this->container = array_merge($this->container, $validPolicy);
     }
 
     /**
