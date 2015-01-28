@@ -1,20 +1,18 @@
-<?php
-
-if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    include __DIR__ . '/template.php';
-    exit;
-}
-
-require __DIR__ . "/Autoload.php";
-Autoload::addNamespace('Qiniu', dirname(__DIR__) . '/src/Qiniu');
-Autoload::register();
-
-$accessKey = 'accessKey';
-$secretKey = 'secretKey';
-
-$qiniu = new \Qiniu\Qiniu($accessKey, $secretKey);
-$bucket = $qiniu->getBucket('sketch');
-
-// 上传文件函数
-$response = $bucket->put($_FILES['file']['tmp_name'], "test.png");
-echo $response->getContent();
+<html>
+    <meta charset="utf-8">
+    <head> 
+        <title>Simple Qiniu SDK</title>
+    </head> 
+    <body>
+        <h1>Simple Qiniu SDK</h1>
+        <div>
+            <p>重写之前的 Simple Qiniu SDK，目前只支持小文件上传。</p>
+            <p>源码下载地址：<a href="https://github.com/zither/simple-qiniu-sdk">https://github.com/zither/simple-qiniu-sdk</a></p>
+            <p>在线测试：</p>
+            <form action="/example/upload.php" method="post"  enctype="multipart/form-data">
+                <input name="file" type="file" />
+                <button id="upload" type="submit">上传到七牛</button>
+            </form>
+        </div>
+    <body>
+</html>
