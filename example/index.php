@@ -1,14 +1,12 @@
 <?php
 
-define('ROOT', __DIR__);
-
 if ($_SERVER['REQUEST_METHOD'] === 'GET') {
-    include ROOT . '/template.php';
+    include __DIR__ . '/template.php';
     exit;
 }
 
-require "Autoload.php";
-Autoload::addNamespace('Qiniu', dirname(ROOT) . '/src/Qiniu');
+require __DIR__ . "/Autoload.php";
+Autoload::addNamespace('Qiniu', dirname(__DIR__) . '/src/Qiniu');
 Autoload::register();
 
 $accessKey = 'accessKey';
@@ -18,5 +16,5 @@ $qiniu = new \Qiniu\Qiniu($accessKey, $secretKey);
 $bucket = $qiniu->getBucket('sketch');
 
 // 上传文件函数
-$response = $bucket->put($_FILES['file']['tmp_name'], "key.png");
+$response = $bucket->put($_FILES['file']['tmp_name'], "test.png");
 echo $response->getContent();
