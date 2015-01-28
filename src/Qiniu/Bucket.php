@@ -58,19 +58,24 @@ class Bucket
      * 上传文件，overwrite 为 true 时为 put（更新）模式
      *
      * @param $body
-     * @param $key
+     * @param $params 文件名以及自定义参数
      * @param $overwrite
      *
-     * @return array
+     * @return object \Qiniu\Http\Response
      */
-    public function put($body, $key = null, $overwrite = false)
+    public function put($file, $params = null, $overwrite = false)
     {
+        // 将 params 格式化为一个包含 key 关键词的数组
+        $params = is_array($params) ? $params: array('key' => $params);
+        $params['key'] = isset($params['key']) ? $params['key'] : null;
+
         if ($overwrite && strpos($this->policy->get('scope'), ':') === false) {
-            $this->setOverwriteScope($key);
+            // 尝试获取文件保存名称
+            $params['key'] = $this->getSaveKey($params['key']);
+            $this->setOverwriteScope($params['key']);
         }
-        $this->signPolicy();
-        $key = $this->getSaveKey($key);
-        return $this->http->callMultiRequest($this->token, $body, $key);
+        $token = $this->signPolicy();
+        return $this->http->callMultiRequest($token, $file, $params);
     }
 
     /**
@@ -80,14 +85,14 @@ class Bucket
      */
     protected function setOverwriteScope($key)
     {
-        if (is_null($key) && !$this->policy->exists('saveKey')) {
+        if (is_null($key)) {
             throw new \InvalidArgumentException(
                 "You must set <key> or <saveKey> when overWrite is true."
             );
         }
         $currentScope = $this->policy->get('scope');
         $this->policy->set(array(
-            'scope' => sprintf("%s:%s", $currentScope, $this->getSaveKey($key))
+            'scope' => sprintf("%s:%s", $currentScope, $key)
         ));
     }
 

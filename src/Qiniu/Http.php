@@ -7,32 +7,28 @@ use Qiniu\Http\Response;
 
 class Http
 {
-    public function callMultiRequest($token, $params, $key)
+    public function callMultiRequest($token, $file, $params)
     {
-        $params = is_string($params) ? array('file' => $params) : $params;
-        $data = $this->getMultiData($token, $params, $key);
-
-        list($contentType, $body) = $data;
+        list($contentType, $body) = $this->getMultiData($token, $file, $params);
         $header = array('Content-Type' => $contentType);
         $request = new Request(Config::QINIU_UP_HOST, $header, $body);
 
         return $this->makeRequest($request);
     }
 
-    protected function getMultiData($token, $body, $key)
+    protected function getMultiData($token, $file, $params)
     {
-        $fields = array('token' => $token);
-        if (!is_null($key)) {
-            $fields['key'] = $key;
+        if (is_null($params['key'])) {
+            unset($params['key']);
         }
+        $fields = array_merge(array('token' => $token), $params);
 
-        if (!isset($body['file'])) {
-            return array('application/x-www-form-urlencoded', $fields);
+        if (!file_exists($file)) {
+            throw new \InvalidArgumentException(sprintf("%s does not exists.", $file));
         }
-
-        $fileInfo = pathinfo($body['file']);
-        $fname = is_null($key) ? $fileInfo['basename'] : $key;
-        $files = array(array('file', $fname, file_get_contents($body['file'])));
+        $fileInfo = pathinfo($file);
+        $fname = isset($fields['key']) ? $fields['key'] : $fileInfo['basename'];
+        $files = array(array('file', $fname, file_get_contents($file)));
 
         return $this->buildMultipartForm($fields, $files);
     }
