@@ -21,7 +21,7 @@ class Qiniu
     protected $buckets = array();
 
     /**
-     * Constructer
+     * Constructor
      *
      * @param $accessKey
      * @param $secretKey

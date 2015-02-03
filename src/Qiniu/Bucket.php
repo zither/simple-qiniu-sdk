@@ -20,7 +20,7 @@ class Bucket
     protected $token = null;
 
     /**
-     * Constructer
+     * Constructor
      *
      * @param $scope bucket name
      * @param $accessKey
