@@ -57,7 +57,7 @@ class Bucket
     /**
      * 上传文件，overwrite 为 true 时为 put（更新）模式
      *
-     * @param $body
+     * @param $file
      * @param $params 文件名以及自定义参数
      * @param $overwrite
      *
