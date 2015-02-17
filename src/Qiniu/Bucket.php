@@ -67,11 +67,11 @@ class Bucket
     {
         // 将 params 格式化为一个包含 key 关键词的数组
         $params = is_array($params) ? $params: array('key' => $params);
-        $params['key'] = isset($params['key']) ? $params['key'] : null;
+        if (!isset($params['key'])) {
+            $params['key'] = $this->getSaveKey();
+        }
 
         if ($overwrite && strpos($this->policy->get('scope'), ':') === false) {
-            // 尝试获取文件保存名称
-            $params['key'] = $this->getSaveKey($params['key']);
             $this->setOverwriteScope($params['key']);
         }
         $token = $this->signPolicy();
@@ -99,13 +99,11 @@ class Bucket
     /**
      * 当 <key> 未设置时尝试从 policy 中获取 <saveKey>
      *
-     * @param $key
-     *
-     * @return mixed <saveKey> 也未设置则返回 null
+     * @return mixed string or  null
      */
-    protected function getSaveKey($key) 
+    protected function getSaveKey() 
     {
-        return is_null($key) ? $this->policy->get('saveKey') : $key;
+        return $this->policy->get('saveKey');
     }
 
     /**
