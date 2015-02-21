@@ -1,4 +1,5 @@
-<?php namespace Qiniu;
+<?php 
+namespace Qiniu;
 
 class Policy
 {
