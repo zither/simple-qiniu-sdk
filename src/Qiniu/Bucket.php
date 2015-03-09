@@ -28,10 +28,10 @@ class Bucket
      */
     public function __construct($scope, $accessKey, $secretKey)
     {
-        $this->container['auth'] = new Auth($accessKey, $secretKey);
-        $this->container['http'] = new Http();
-        $this->container['policy'] = new Policy();
-        $this->setPolicy(array('scope' => $scope));
+        $this->container["auth"] = new Auth($accessKey, $secretKey);
+        $this->container["http"] = new Http();
+        $this->container["policy"] = new Policy();
+        $this->setPolicy(array("scope" => $scope));
     }
 
     /**
@@ -66,13 +66,13 @@ class Bucket
     public function put($file, $params = null, $overwrite = false)
     {
         // 将 params 格式化为一个包含 key 关键词的数组
-        $params = is_array($params) ? $params: array('key' => $params);
-        if (!isset($params['key'])) {
-            $params['key'] = $this->getSaveKey();
+        $params = is_array($params) ? $params: array("key" => $params);
+        if (!isset($params["key"])) {
+            $params["key"] = $this->getSaveKey();
         }
 
-        if ($overwrite && strpos($this->policy->get('scope'), ':') === false) {
-            $this->setOverwriteScope($params['key']);
+        if ($overwrite && strpos($this->policy->get("scope"), ":") === false) {
+            $this->setOverwriteScope($params["key"]);
         }
         $token = $this->signPolicy();
         return $this->http->callMultiRequest($token, $file, $params);
@@ -90,9 +90,9 @@ class Bucket
                 "You must set <key> or <saveKey> when overWrite is true."
             );
         }
-        $currentScope = $this->policy->get('scope');
+        $currentScope = $this->policy->get("scope");
         $this->policy->set(array(
-            'scope' => sprintf("%s:%s", $currentScope, $key)
+            "scope" => sprintf("%s:%s", $currentScope, $key)
         ));
     }
 
@@ -103,7 +103,7 @@ class Bucket
      */
     protected function getSaveKey() 
     {
-        return $this->policy->get('saveKey');
+        return $this->policy->get("saveKey");
     }
 
     /**

@@ -28,7 +28,7 @@ class Response
             return $this->body;
         }
         // 请求失败，返回对应的错误码以及错误信息
-        $data = array('code' => $this->statusCode, 'error' => null);
+        $data = array("code" => $this->statusCode, "error" => null);
         if (!empty($this->body)) {
             $data = array_merge($data, json_decode($this->body, true));
         }

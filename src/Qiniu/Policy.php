@@ -17,7 +17,7 @@ class Policy
     {
         if (!is_array($policy)) {
             throw new \InvalidArgumentException(
-                'setPolicy method\'s parameter must be an array.'
+                "setPolicy method's parameter must be of the type array."
             );
         }
         $this->merge($policy);
@@ -31,11 +31,11 @@ class Policy
     protected function merge($policy)
     {
         $defaultPolicy = array(
-            'scope', 'deadline', 'callbackUrl', 'callbackBody', 'returnUrl', 
-            'asyncOps', 'endUser', 'expires', 'insertOnly', 
-            'callbackHost', 'callbackBodyType', 'callbackFetchKey',
-            'persistentOps', 'persistentNotifyUrl', 'persistentPipeline',
-            'saveKey', 'fsizeLimit', 'detectMime', 'mimeLimit', 'returnBody'
+            "scope", "deadline", "callbackUrl", "callbackBody", "returnUrl", 
+            "asyncOps", "endUser", "expires", "insertOnly", 
+            "callbackHost", "callbackBodyType", "callbackFetchKey",
+            "persistentOps", "persistentNotifyUrl", "persistentPipeline",
+            "saveKey", "fsizeLimit", "detectMime", "mimeLimit", "returnBody"
         );
         $validPolicy = array_intersect_key($policy, array_flip($defaultPolicy));
         $this->container = array_merge($this->container, $validPolicy);
@@ -49,10 +49,10 @@ class Policy
     public function getContainer()
     {
         $expires = 3600;
-        if ($this->exists('expires')) {
-            $expires = $this->container['expires'];
+        if ($this->exists("expires")) {
+            $expires = $this->container["expires"];
         }
-        $this->set(array('deadline' => time() + $expires));
+        $this->set(array("deadline" => time() + $expires));
         return $this->container;
     }
 

@@ -16,7 +16,7 @@ class Auth
 
     public function Sign($data)
     {
-        $sign = hash_hmac('sha1', $data, $this->secretKey, true);
+        $sign = hash_hmac("sha1", $data, $this->secretKey, true);
         return sprintf("%s:%s", $this->accessKey, $this->encode($sign));
     }
 
@@ -29,17 +29,17 @@ class Auth
     public function SignRequest(Request $request)
     {
         $url = $request->url;
-        $url = parse_url($url['path']);
-        $data = '';
-        if (isset($url['path'])) {
-            $data = $url['path'];
+        $url = parse_url($url["path"]);
+        $data = "";
+        if (isset($url["path"])) {
+            $data = $url["path"];
         }
-        if (isset($url['query'])) {
-            $data .= '?' . $url['query'];
+        if (isset($url["query"])) {
+            $data .= "?" . $url["query"];
         }
         $data .= "\n";
 
-        if (isset($request->body) && $request->header['Content-Type'] === 'application/x-www-form-urlencoded') {
+        if (isset($request->body) && $request->header["Content-Type"] === "application/x-www-form-urlencoded") {
             $data .= $request->body;
         }
         return $this->sign($data);
@@ -47,8 +47,8 @@ class Auth
 
     public function encode($string)
     {
-        $find = array('+', '/');
-        $replace = array('-', '_');
+        $find = array("+", "/");
+        $replace = array("-", "_");
         return str_replace($find, $replace, base64_encode($string));
     }
 }
