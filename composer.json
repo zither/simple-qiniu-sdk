@@ -1,0 +1,24 @@
+{
+    "name": "zither/qiniu",
+    "type": "library",
+    "description": "七牛云储存简化版 PHP SDK。",
+    "homepage": "https://github.com/zither/simple-qiniu-sdk",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Jun Zhou",
+            "email": "zhoujun@shouhuiben.net",
+            "homepage": "http://shouhuiben.net",
+            "role": "Developer"
+        }  
+    ],
+    "require": {
+        "php": ">=5.3.5"
+
+    },
+    "autoload": {
+        "psr-4": {
+            "Qiniu": "src/Qiniu"
+        } 
+    }
+}
