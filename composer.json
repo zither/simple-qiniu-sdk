@@ -14,11 +14,10 @@
     ],
     "require": {
         "php": ">=5.3.5"
-
     },
     "autoload": {
-        "psr-4": {
-            "Qiniu": "src/Qiniu"
+        "psr-0": {
+            "Qiniu": "src"
         } 
     }
 }
