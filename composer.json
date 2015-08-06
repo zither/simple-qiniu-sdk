@@ -16,8 +16,8 @@
         "php": ">=5.3.5"
     },
     "autoload": {
-        "psr-0": {
-            "Qiniu": "src"
+        "psr-4": {
+            "Qiniu\\": "src\\Qiniu"
         } 
     }
 }
