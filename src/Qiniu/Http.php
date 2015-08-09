@@ -9,7 +9,7 @@ use InvalidArgumentException;
 class Http
 {
     /**
-     * Call multiple request
+     * Call multipart request
      *
      * @param string $token
      * @param string $file
@@ -26,7 +26,7 @@ class Http
     }
 
     /**
-     * Get multiple data
+     * Get multipart data
      *
      * @param string $token
      * @param string $file
