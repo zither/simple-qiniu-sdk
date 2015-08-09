@@ -3,11 +3,11 @@ namespace Qiniu\Http;
 
 class Request 
 {
-    public $url = null;
-    public $header = null;
-    public $body = null;
+    public $url;
+    public $header;
+    public $body;
 
-    public function __construct($url, $header= array(), $body = null)
+    public function __construct($url, $header = array(), $body = null)
     {
         $this->url = $url;
         $this->header = $header;

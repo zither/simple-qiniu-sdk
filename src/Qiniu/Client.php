@@ -3,7 +3,7 @@ namespace Qiniu;
 
 use Qiniu\Bucket;
 
-class Qiniu
+class Client
 {
     /**
      * @var string
@@ -36,8 +36,7 @@ class Qiniu
      * 获取指定的 Bucket 对象
      *
      * @param $name
-     *
-     * @return object \Qiniu\Bucket
+     * @return Bucket
      */
     public function getBucket($name)
     {
@@ -48,6 +47,7 @@ class Qiniu
                 $this->secretKey
             ); 
         }
+
         return $this->buckets[$name]; 
     }
 }

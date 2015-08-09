@@ -4,10 +4,19 @@ namespace Qiniu;
 use Qiniu\Config;
 use Qiniu\Http\Request;
 use Qiniu\Http\Response;
+use InvalidArgumentException;
 
 class Http
 {
-    public function callMultiRequest($token, $file, $params)
+    /**
+     * Call multiple request
+     *
+     * @param string $token
+     * @param string $file
+     * @param array $params
+     * @return Response
+     */
+    public function callMultiRequest($token, $file, array $params)
     {
         list($contentType, $body) = $this->getMultiData($token, $file, $params);
         $header = array("Content-Type" => $contentType);
@@ -16,24 +25,49 @@ class Http
         return $this->makeRequest($request);
     }
 
-    protected function getMultiData($token, $file, $params)
+    /**
+     * Get multiple data
+     *
+     * @param string $token
+     * @param string $file
+     * @param array $params
+     * @return array
+     * @throws InvalidArgumentException for invalid file path
+     */
+    protected function getMultiData($token, $file, array $params)
     {
-        if (is_null($params["key"])) {
+        if (isset($params["key"]) && empty($params["key"])) {
             unset($params["key"]);
         }
+
         $fields = array_merge(array("token" => $token), $params);
 
         if (!file_exists($file)) {
-            throw new \InvalidArgumentException(sprintf("%s does not exists.", $file));
+            throw new InvalidArgumentException(
+                sprintf("%s does not exists.", $file)
+            );
         }
+
         $fileInfo = pathinfo($file);
         $fname = isset($fields["key"]) ? $fields["key"] : $fileInfo["basename"];
-        $files = array(array("file", $fname, file_get_contents($file)));
+        $files = array(
+            array(
+                "file", 
+                $fname, 
+                file_get_contents($file)
+            )
+        );
 
         return $this->buildMultipartForm($fields, $files);
     }
 
-    protected function makeRequest($request)
+    /**
+     * Make request
+     *
+     * @param Request $request
+     * @return Response
+     */
+    protected function makeRequest(Request $request)
     {
         $ch = curl_init();
         curl_setopt_array($ch, $this->getCurlOptions($request));
@@ -46,6 +80,7 @@ class Http
 
         $statusCode =  $errorCode > 0 ? $errorCode : $httpCode;
         $body = $errorCode > 0 ? sprintf('{"error":"%s"}', $errorMessage) : $result;
+
         return new Response(
             $statusCode, 
             array("Content-Type" => "application/json"), 
@@ -53,7 +88,13 @@ class Http
         );
     }
 
-    protected function getCurlOptions($request) 
+    /**
+     * Get curl options
+     *
+     * @param Request $request
+     * @return array
+     */
+    protected function getCurlOptions(Request $request) 
     {
         $options = array(
             CURLOPT_RETURNTRANSFER => true,
@@ -70,9 +111,17 @@ class Http
         if (!empty($request->body)) {
             $options[CURLOPT_POSTFIELDS] = $request->body;
         }
+
         return $options;
     }
 
+    /**
+     * Build multipart form
+     *
+     * @param array $fields
+     * @param array $files
+     * @return array
+     */
     protected function buildMultipartForm($fields, $files)
     {
         $data = array();
@@ -100,13 +149,21 @@ class Http
 
         $body = implode("\r\n", $data);
         $contentType = "multipart/form-data; boundary=" . $mimeBoundary;
+
         return array($contentType, $body);
     }
 
+    /**
+     * Escape quotes
+     *
+     * @param string $string
+     * @return string
+     */
     protected function escapeQuotes($string)
     {
         $find = array("\\", "\"");
         $replace = array("\\\\", "\\\"");
+
         return str_replace($find, $replace, $string);
     }
 }

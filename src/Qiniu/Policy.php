@@ -1,6 +1,8 @@
 <?php 
 namespace Qiniu;
 
+use InvalidArgumentException;
+
 class Policy
 {
     /**
@@ -12,11 +14,12 @@ class Policy
      * 设置上传策略
      *
      * @param $policy
+     * @throws InvalidArgumentException for invalid policy
      */
     public function set($policy)
     {
         if (!is_array($policy)) {
-            throw new \InvalidArgumentException(
+            throw new InvalidArgumentException(
                 "setPolicy method's parameter must be of the type array."
             );
         }

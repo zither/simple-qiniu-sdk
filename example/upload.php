@@ -1,13 +1,12 @@
 <?php
+use Qiniu\Client;
 
-require __DIR__ . "/Autoload.php";
-Autoload::addNamespace("Qiniu", dirname(__DIR__) . "/src/Qiniu");
-Autoload::register();
+require dirname(__DIR__) . "/vendor/autoload.php";
 
-$accessKey = "accessKey";
-$secretKey = "secretKey";
-$qiniu = new \Qiniu\Qiniu($accessKey, $secretKey);
+$accessKey = "Your access key";
+$secretKey = "Your secret key";
+$qiniu = new Client($accessKey, $secretKey);
 
 $bucket = $qiniu->getBucket("sketch");
-$response = $bucket->put($_FILES["file"]["tmp_name"], "test.png");
+$response = $bucket->put($_FILES["file"]["tmp_name"], "test.png", true);
 echo $response->getContent();

@@ -4,6 +4,7 @@ namespace Qiniu;
 use Qiniu\Auth;
 use Qiniu\Http;
 use Qiniu\Policy;
+use InvalidArgumentException;
 
 class Bucket
 {
@@ -31,6 +32,7 @@ class Bucket
         $this->container["auth"] = new Auth($accessKey, $secretKey);
         $this->container["http"] = new Http();
         $this->container["policy"] = new Policy();
+
         $this->setPolicy(array("scope" => $scope));
     }
 
@@ -60,8 +62,7 @@ class Bucket
      * @param $file
      * @param $params 文件名以及自定义参数
      * @param $overwrite
-     *
-     * @return object \Qiniu\Http\Response
+     * @return \Qiniu\Http\Response
      */
     public function put($file, $params = null, $overwrite = false)
     {
@@ -79,14 +80,25 @@ class Bucket
     }
 
     /**
+     * 当 <key> 未设置时尝试从 policy 中获取 <saveKey>
+     *
+     * @return string | null
+     */
+    protected function getSaveKey() 
+    {
+        return $this->policy->get("saveKey");
+    }
+
+    /**
      * Overwrite 为真时必须将 scope 设置为 bucket:<key> 模式
      *
      * @param $key
+     * @throws InvalidArgumentException for invlaid key
      */
     protected function setOverwriteScope($key)
     {
         if (is_null($key)) {
-            throw new \InvalidArgumentException(
+            throw new InvalidArgumentException(
                 "You must set <key> or <saveKey> when overWrite is true."
             );
         }
@@ -94,16 +106,6 @@ class Bucket
         $this->policy->set(array(
             "scope" => sprintf("%s:%s", $currentScope, $key)
         ));
-    }
-
-    /**
-     * 当 <key> 未设置时尝试从 policy 中获取 <saveKey>
-     *
-     * @return mixed string or  null
-     */
-    protected function getSaveKey() 
-    {
-        return $this->policy->get("saveKey");
     }
 
     /**
@@ -121,8 +123,7 @@ class Bucket
      * Container getter
      *
      * @param $name
-     *
-     * @return object 辅助对象
+     * @return mixed
      */
     public function __get($name)
     {

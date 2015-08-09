@@ -5,28 +5,63 @@ use Qiniu\Http\Request;
 
 class Auth
 {
-    protected $accessKey = null;
-    protected $secretKey = null;
+    /**
+     * Access key
+     *
+     * @var string
+     */
+    protected $accessKey;
 
+    /**
+     * Secret key
+     *
+     * @var string
+     */
+    protected $secretKey;
+
+    /**
+     * __construct
+     *
+     * @param mixed $accessKey
+     * @param mixed $secretKey
+     */
     public function __construct($accessKey, $secretKey)
     {
         $this->accessKey = $accessKey;
         $this->secretKey = $secretKey;
     }
 
-    public function Sign($data)
+    /**
+     * Sign
+     *
+     * @param string $data
+     * @return string
+     */
+    public function sign($data)
     {
         $sign = hash_hmac("sha1", $data, $this->secretKey, true);
         return sprintf("%s:%s", $this->accessKey, $this->encode($sign));
     }
 
-    public function SignData($data)
+    /**
+     * Sign data
+     *
+     * @param mixed $data
+     * @return string
+     */
+    public function signData($data)
     {
         $data = $this->encode($data);
         return sprintf("%s:%s", $this->sign($data), $data);
     }
 
-    public function SignRequest(Request $request)
+    /**
+     * Sign Request
+     *
+     * @param Request $request
+     * @return string
+     */
+    public function signRequest(Request $request)
     {
         $url = $request->url;
         $url = parse_url($url["path"]);
@@ -45,6 +80,12 @@ class Auth
         return $this->sign($data);
     }
 
+    /**
+     * Helper method
+     *
+     * @param string $string
+     * @return string
+     */
     public function encode($string)
     {
         $find = array("+", "/");
