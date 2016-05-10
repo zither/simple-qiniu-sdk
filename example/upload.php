@@ -1,12 +1,12 @@
 <?php
-use Qiniu\Client;
+use Qiniu\Config;
 
-require dirname(__DIR__) . "/vendor/autoload.php";
+require_once __DIR__ . '/common.php';
 
-$accessKey = "Your access key";
-$secretKey = "Your secret key";
-$qiniu = new Client($accessKey, $secretKey);
-
-$bucket = $qiniu->getBucket("sketch");
-$response = $bucket->put($_FILES["file"]["tmp_name"], "test.png", true);
+$bucket = $qiniu->getBucket('sketch');
+$response = $bucket->put(
+    $_FILES['file']['tmp_name'],
+    'test.png', 
+    Config::EXTR_OVERWRITE
+);
 echo $response->getContent();

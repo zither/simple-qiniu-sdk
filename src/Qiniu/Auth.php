@@ -5,91 +5,47 @@ use Qiniu\Http\Request;
 
 class Auth
 {
-    /**
-     * Access key
-     *
-     * @var string
-     */
-    protected $accessKey;
+    protected $config;
 
-    /**
-     * Secret key
-     *
-     * @var string
-     */
-    protected $secretKey;
-
-    /**
-     * __construct
-     *
-     * @param mixed $accessKey
-     * @param mixed $secretKey
-     */
-    public function __construct($accessKey, $secretKey)
+    public function __construct(Config $config)
     {
-        $this->accessKey = $accessKey;
-        $this->secretKey = $secretKey;
+        $this->config = $config;
     }
 
-    /**
-     * Sign
-     *
-     * @param string $data
-     * @return string
-     */
     public function sign($data)
     {
-        $sign = hash_hmac("sha1", $data, $this->secretKey, true);
-        return sprintf("%s:%s", $this->accessKey, $this->encode($sign));
+        $sign = hash_hmac('sha1', $data, $this->config->secretKey, true);
+        return sprintf('%s:%s', $this->config->accessKey, $this->encode($sign));
     }
 
-    /**
-     * Sign data
-     *
-     * @param mixed $data
-     * @return string
-     */
     public function signData($data)
     {
         $data = $this->encode($data);
-        return sprintf("%s:%s", $this->sign($data), $data);
+        return sprintf('%s:%s', $this->sign($data), $data);
     }
 
-    /**
-     * Sign Request
-     *
-     * @param Request $request
-     * @return string
-     */
     public function signRequest(Request $request)
     {
-        $url = $request->url;
-        $url = parse_url($url["path"]);
-        $data = "";
-        if (isset($url["path"])) {
-            $data = $url["path"];
+        $url = parse_url($request->url);
+        $data = '';
+        if (isset($url['path'])) {
+            $data = $url['path'];
         }
-        if (isset($url["query"])) {
-            $data .= "?" . $url["query"];
+        if (isset($url['query'])) {
+            $data .= '?' . $url['query'];
         }
         $data .= "\n";
 
-        if (isset($request->body) && $request->header["Content-Type"] === "application/x-www-form-urlencoded") {
+        if (isset($request->body) && $request->headers['Content-Type'] === 'application/x-www-form-urlencoded') {
             $data .= $request->body;
         }
         return $this->sign($data);
     }
 
-    /**
-     * Helper method
-     *
-     * @param string $string
-     * @return string
-     */
     public function encode($string)
     {
-        $find = array("+", "/");
-        $replace = array("-", "_");
+        $find = ['+', '/'];
+        $replace = ['-', '_'];
         return str_replace($find, $replace, base64_encode($string));
     }
 }

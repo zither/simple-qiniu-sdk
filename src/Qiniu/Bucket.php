@@ -1,132 +1,97 @@
 <?php
 namespace Qiniu;
 
-use Qiniu\Auth;
-use Qiniu\Http;
-use Qiniu\Policy;
+use Qiniu\Http\Request;
 use InvalidArgumentException;
 
 class Bucket
 {
-    const EXTR_OVERWRITE = true;
+    protected $name;
+    protected $config;
+    protected $auth;
+    protected $http;
+    protected $policies;
 
-    /**
-     * @var object[]
-     */
-    protected $container = array();
-
-    /**
-     * @var string
-     */
-    protected $token = null;
-
-    /**
-     * Constructor
-     *
-     * @param $scope bucket name
-     * @param $accessKey
-     * @param $secretKey
-     */
-    public function __construct($scope, $accessKey, $secretKey)
+    public function __construct($scope, Config $config)
     {
-        $this->container["auth"] = new Auth($accessKey, $secretKey);
-        $this->container["http"] = new Http();
-        $this->container["policy"] = new Policy();
-
-        $this->setPolicy(array("scope" => $scope));
+        $this->name = $scope;
+        $this->config = $config;
+        $this->auth = new Auth($config);
+        $this->http = new Http;
+        $this->policies = new Policies(['scope' => $scope]);
     }
 
-    /**
-     * 设置上传策略
-     *
-     * @param $policy
-     */
-    public function setPolicy($policy)
+    public function setPolicies(array $policies)
     {
-        $this->policy->set($policy);
+        $this->policies->add($policies);
     }
 
-    /**
-     * 获取 upload token
-     *
-     * @return string
-     */
-    public function getUpToken()
+    public function stat($file)
     {
-        return $this->signPolicy();
+        $url = $this->config->statUri($this->name, $file);
+        $request = $this->createSignedRequest($url);
+        return $this->http->sendRequest($request);
     }
 
-    /**
-     * 上传文件，overwrite 为 true 时为 put（更新）模式
-     *
-     * @param $file
-     * @param $params 文件名以及自定义参数
-     * @param $overwrite
-     * @return \Qiniu\Http\Response
-     */
+    public function delete($file)
+    {
+        $url = $this->config->deleteUri($this->name, $file);
+        $request = $this->createSignedRequest($url);
+        return $this->http->sendRequest($request);
+    }   
+
     public function put($file, $params = null, $overwrite = false)
     {
-        // 将 params 格式化为一个包含 key 关键词的数组
-        $params = is_array($params) ? $params: array("key" => $params);
-        if (!isset($params["key"])) {
-            $params["key"] = $this->getSaveKey();
+        $params = is_array($params) ? $params : ['key' => $params];
+        if (!isset($params['key'])) {
+            $params['key'] = $this->getSaveKey();
         }
 
-        if ($overwrite && strpos($this->policy->get("scope"), ":") === false) {
-            $this->setOverwriteScope($params["key"]);
+        if ($overwrite && strpos($this->policies->get('scope'), ':') === false) {
+            $this->setOverwriteScope($params['key']);
         }
-        $token = $this->signPolicy();
+
+        $token = $this->token();
+
         return $this->http->callMultiRequest($token, $file, $params);
     }
 
-    /**
-     * 当 <key> 未设置时尝试从 policy 中获取 <saveKey>
-     *
-     * @return string | null
-     */
     protected function getSaveKey() 
     {
-        return $this->policy->get("saveKey");
+        return $this->policies->get('saveKey');
     }
 
-    /**
-     * Overwrite 为真时必须将 scope 设置为 bucket:<key> 模式
-     *
-     * @param $key
-     * @throws InvalidArgumentException for invlaid key
-     */
     protected function setOverwriteScope($key)
     {
         if (is_null($key)) {
             throw new InvalidArgumentException(
-                "You must set <key> or <saveKey> when overWrite is true."
+                'You must set <key> or <saveKey> with overWrite mode.'
             );
         }
-        $currentScope = $this->policy->get("scope");
-        $this->policy->set(array(
-            "scope" => sprintf("%s:%s", $currentScope, $key)
-        ));
+        $currentScope = $this->policies->get('scope');
+        $this->policies->add([
+            'scope' => sprintf('%s:%s', $currentScope, $key)
+        ]);
     }
 
-    /**
-     * 上传策略签名
-     *
-     * @return string 返回 upload token
-     */
-    protected function signPolicy()
+    public function token()
     {
-        $encodePolicy = json_encode($this->policy->getContainer());
-        return $this->token = $this->auth->signData($encodePolicy);
+        return $this->signPolicies();
     }
 
-    /**
-     * Container getter
-     *
-     * @param $name
-     * @return mixed
-     */
-    public function __get($name)
+    protected function signPolicies()
     {
-        return isset($this->container[$name]) ? $this->container[$name] : null;
+        $encodePolicies = json_encode($this->policies->all());
+        return $this->auth->signData($encodePolicies);
+    }
+
+    protected function createSignedRequest($url, $headers = [], $body = null)
+    {
+        $request = new Request($url, $headers, $body);
+        $request->withHeader(
+            'Authorization', 
+            'QBox ' . $this->auth->signRequest($request)
+        );
+        return $request;
     }
 }

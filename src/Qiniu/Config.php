@@ -3,93 +3,59 @@ namespace Qiniu;
 
 class Config
 {
-    /**
-     * Qiniu up host 
-     *
-     * @var string
-     */
-    const QINIU_UP_HOST = "http://up.qiniu.com";
+    const UP_HOST = 'http://up.qiniu.com';
 
-    /**
-     * Qiniu rs host 
-     *
-     * @var string
-     */
-    const QINIU_RS_HOST = "http://rs.qbox.me";
+    const RS_HOST = 'http://rs.qiniu.com';
 
-    /**
-     * Qiniu rsf host 
-     *
-     * @var string
-     */
-    const QINIU_RSF_HOST = "http://rsf.qbox.me";
+    const RSF_HOST = 'http://rsf.qbox.me';
 
-    /**
-     * rsURIStat 
-     *
-     * @param string $bucket
-     * @param string $key
-     * @return string
-     */
-    public function rsURIStat($bucket, $key)
+    const EXTR_OVERWRITE = true;
+
+    protected $accessKey;
+
+    protected $secretKey;
+
+    public function __construct($accessKey, $secretKey)
     {
-        return static::QINIU_RS_HOST . "/stat/" . $this->encode("$bucket:$key");
+        $this->accessKey = $accessKey;
+        $this->secretKey = $secretKey;
     }
 
-    /**
-     * rsURIDelete
-     *
-     * @param string $bucket
-     * @param string $key
-     * @return string
-     */
-    public function rsURIDelete($bucket, $key)
+    public function statUri($bucket, $key)
     {
-        return static::QINIU_RS_HOST . "/delete/" . $this->encode("$bucket:$key");
+        $encoded = $this->encode(sprintf('%s:%s', $bucket, $key));
+        return sprintf('%s/stat/%s', static::RS_HOST, $encoded);
     }
 
-    /**
-     * rsURICopy
-     *
-     * @param string $bucketSrc
-     * @param string $keySrc
-     * @param string $bucketDest
-     * @param string $keyDest
-     * @return string
-     */
-    public function rsURICopy($bucketSrc, $keySrc, $bucketDest, $keyDest)
+    public function deleteUri($bucket, $key)
     {
-        return static::QINIU_RS_HOST . 
+        $encoded = $this->encode(sprintf('%s:%s', $bucket, $key));
+        return sprintf('%s/delete/%s', static::RS_HOST, $encoded);
+    }
+
+    public function copyUri($bucketSrc, $keySrc, $bucketDest, $keyDest)
+    {
+        return static::RS_HOST . 
             "/copy/" . $this->encode("$bucketSrc:$keySrc") . 
             "/" . $this->encode("$bucketDest:$keyDest");
     }
 
-    /**
-     * rsURIMove
-     *
-     * @param string $bucketSrc
-     * @param string $keySrc
-     * @param string $bucketDest
-     * @param string $keyDest
-     * @return string
-     */
-    public function rsURIMove($bucketSrc, $keySrc, $bucketDest, $keyDest)
+    public function moveUri($bucketSrc, $keySrc, $bucketDest, $keyDest)
     {
-        return static::QINIU_RS_HOST . 
+        return static::RS_HOST . 
             "/move/" . $this->encode("$bucketSrc:$keySrc") .
             "/" . $this->encode("$bucketDest:$keyDest");
     }
 
-    /**
-     * Helper method
-     *
-     * @param string $string
-     * @return string
-     */
     public function encode($string)
     {
-        $find = array("+", "/");
-        $replace = array("-", "_");
+        $find = ['+', '/'];
+        $replace = ['-', '_'];
         return str_replace($find, $replace, base64_encode($string));
+    }
+
+    public function __get($key)
+    {
+        return $this->$key;
     }
 }

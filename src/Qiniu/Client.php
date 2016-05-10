@@ -1,51 +1,22 @@
 <?php 
 namespace Qiniu;
 
-use Qiniu\Bucket;
-
 class Client
 {
-    /**
-     * @var string
-     */
-    protected $accessKey;
+    protected $config;
 
-    /**
-     * @var string
-     */
-    protected $secretKey;
+    protected $buckets = [];
 
-    /**
-     * @var object[]
-     */
-    protected $buckets = array();
 
-    /**
-     * Constructor
-     *
-     * @param $accessKey
-     * @param $secretKey
-     */
     public function __construct($accessKey, $secretKey)
     {
-        $this->accessKey = $accessKey;
-        $this->secretKey = $secretKey;
+        $this->config = new Config($accessKey, $secretKey);
     }
 
-    /**
-     * 获取指定的 Bucket 对象
-     *
-     * @param $name
-     * @return Bucket
-     */
     public function getBucket($name)
     {
-        if (!isset($this->buckets[$name])) {
-            $this->buckets[$name] = new Bucket(
-                $name, 
-                $this->accessKey, 
-                $this->secretKey
-            ); 
+        if (! isset($this->buckets[$name])) {
+            $this->buckets[$name] = new Bucket($name, $this->config); 
         }
 
         return $this->buckets[$name]; 

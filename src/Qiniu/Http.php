@@ -1,73 +1,50 @@
 <?php
 namespace Qiniu;
 
-use Qiniu\Config;
 use Qiniu\Http\Request;
 use Qiniu\Http\Response;
 use InvalidArgumentException;
 
 class Http
 {
-    /**
-     * Call multipart request
-     *
-     * @param string $token
-     * @param string $file
-     * @param array $params
-     * @return Response
-     */
+
     public function callMultiRequest($token, $file, array $params)
     {
         list($contentType, $body) = $this->getMultiData($token, $file, $params);
-        $header = array("Content-Type" => $contentType);
-        $request = new Request(Config::QINIU_UP_HOST, $header, $body);
+        $headers = ['Content-Type' => $contentType];
+        $request = new Request(Config::UP_HOST, $headers, $body);
 
-        return $this->makeRequest($request);
+        return $this->sendRequest($request);
     }
 
-    /**
-     * Get multipart data
-     *
-     * @param string $token
-     * @param string $file
-     * @param array $params
-     * @return array
-     * @throws InvalidArgumentException for invalid file path
-     */
     protected function getMultiData($token, $file, array $params)
     {
-        if (isset($params["key"]) && empty($params["key"])) {
-            unset($params["key"]);
+        if (isset($params['key']) && empty($params['key'])) {
+            unset($params['key']);
         }
 
-        $fields = array_merge(array("token" => $token), $params);
+        $fields = array_merge(['token' => $token], $params);
 
         if (!file_exists($file)) {
             throw new InvalidArgumentException(
-                sprintf("%s does not exists.", $file)
+                sprintf('%s does not exists.', $file)
             );
         }
 
         $fileInfo = pathinfo($file);
-        $fname = isset($fields["key"]) ? $fields["key"] : $fileInfo["basename"];
-        $files = array(
-            array(
-                "file", 
+        $fname = isset($fields['key']) ? $fields['key'] : $fileInfo['basename'];
+        $files = [
+            [
+                'file', 
                 $fname, 
                 file_get_contents($file)
-            )
-        );
+            ],
+        ];
 
         return $this->buildMultipartForm($fields, $files);
     }
 
-    /**
-     * Make request
-     *
-     * @param Request $request
-     * @return Response
-     */
-    protected function makeRequest(Request $request)
+    public function sendRequest(Request $request)
     {
         $ch = curl_init();
         curl_setopt_array($ch, $this->getCurlOptions($request));
@@ -75,25 +52,26 @@ class Http
 
         $errorCode = curl_errno($ch);
         $errorMessage = curl_error($ch);
-        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+        $statusCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        $statusCode =  $errorCode > 0 ? $errorCode : $httpCode;
-        $body = $errorCode > 0 ? sprintf('{"error":"%s"}', $errorMessage) : $result;
+        if ($errorCode) {
+            $body = sprintf(
+                '{"code":"%s", "error":"%s"}', 
+                $errorCode, 
+                $errorMessage
+            );
+        } else {
+            $body = $result;
+        }
 
         return new Response(
             $statusCode, 
-            array("Content-Type" => "application/json"), 
+            ['Content-Type' => 'application/json'], 
             $body
         );
     }
 
-    /**
-     * Get curl options
-     *
-     * @param Request $request
-     * @return array
-     */
     protected function getCurlOptions(Request $request) 
     {
         $options = array(
@@ -103,9 +81,9 @@ class Http
             CURLOPT_CUSTOMREQUEST  => 'POST',
             CURLOPT_URL => $request->url
         );
-        if (!empty($request->header)) {
-            foreach($request->header as $key => $value) {
-                $options[CURLOPT_HTTPHEADER][] = sprintf("%s: %s", $key, $value);
+        if (!empty($request->headers)) {
+            foreach($request->headers as $key => $value) {
+                $options[CURLOPT_HTTPHEADER][] = sprintf('%s: %s', $key, $value);
             }
         }
         if (!empty($request->body)) {
@@ -115,54 +93,48 @@ class Http
         return $options;
     }
 
-    /**
-     * Build multipart form
-     *
-     * @param array $fields
-     * @param array $files
-     * @return array
-     */
     protected function buildMultipartForm($fields, $files)
     {
-        $data = array();
+        $data = [];
         $mimeBoundary = md5(microtime());
 
         foreach ($fields as $name => $value) {
-            array_push($data, "--" . $mimeBoundary);
-            array_push($data, "Content-Disposition: form-data; name=\"$name\"");
-            array_push($data, "");
+            array_push($data, '--' . $mimeBoundary);
+            array_push($data, sprintf(
+                'Content-Disposition: form-data; name="%s"', 
+                $name
+            ));
+            array_push($data, '');
             array_push($data, $value);
         }
 
         foreach ($files as $file) {
-            array_push($data, "--" . $mimeBoundary);
+            array_push($data, '--' . $mimeBoundary);
             list($name, $fileName, $fileBody) = $file;
             $fileName = $this->escapeQuotes($fileName);
-            array_push($data, "Content-Disposition: form-data; name=\"$name\"; filename=\"$fileName\"");
-            array_push($data, "Content-Type: application/octet-stream");
-            array_push($data, "");
+            array_push($data, sprintf(
+                'Content-Disposition: form-data; name="%s"; filename="%s"', 
+                $name, 
+                $fileName)
+            );
+            array_push($data, 'Content-Type: application/octet-stream');
+            array_push($data, '');
             array_push($data, $fileBody);
         }
 
-        array_push($data, "--" . $mimeBoundary . "--");
-        array_push($data, "");
+        array_push($data, '--' . $mimeBoundary . '--');
+        array_push($data, '');
 
         $body = implode("\r\n", $data);
-        $contentType = "multipart/form-data; boundary=" . $mimeBoundary;
+        $contentType = 'multipart/form-data; boundary=' . $mimeBoundary;
 
-        return array($contentType, $body);
+        return [$contentType, $body];
     }
 
-    /**
-     * Escape quotes
-     *
-     * @param string $string
-     * @return string
-     */
     protected function escapeQuotes($string)
     {
-        $find = array("\\", "\"");
-        $replace = array("\\\\", "\\\"");
+        $find = ["\\", "\""];
+        $replace = ["\\\\", "\\\""];
 
         return str_replace($find, $replace, $string);
     }
