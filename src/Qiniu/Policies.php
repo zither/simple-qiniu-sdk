@@ -1,8 +1,6 @@
 <?php 
 namespace Qiniu;
 
-use InvalidArgumentException;
-
 class Policies
 {
     protected $items = [];

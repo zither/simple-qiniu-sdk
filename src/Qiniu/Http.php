@@ -8,7 +8,7 @@ use InvalidArgumentException;
 class Http
 {
 
-    public function callMultiRequest($token, $file, array $params)
+    public function callMultiRequest($token, $file, array $params = [])
     {
         list($contentType, $body) = $this->getMultiData($token, $file, $params);
         $headers = ['Content-Type' => $contentType];

@@ -4,15 +4,10 @@ namespace Qiniu;
 class Config
 {
     const UP_HOST = 'http://up.qiniu.com';
-
     const RS_HOST = 'http://rs.qiniu.com';
-
     const RSF_HOST = 'http://rsf.qbox.me';
 
-    const EXTR_OVERWRITE = true;
-
     protected $accessKey;
-
     protected $secretKey;
 
     public function __construct($accessKey, $secretKey)
@@ -21,30 +16,59 @@ class Config
         $this->secretKey = $secretKey;
     }
 
-    public function statUri($bucket, $key)
+    public function statUri($scope)
     {
-        $encoded = $this->encode(sprintf('%s:%s', $bucket, $key));
-        return sprintf('%s/stat/%s', static::RS_HOST, $encoded);
+        $encoded = $this->encode($scope);
+        return sprintf('/stat/%s', $encoded);
     }
 
-    public function deleteUri($bucket, $key)
+    public function deleteUri($scope)
     {
-        $encoded = $this->encode(sprintf('%s:%s', $bucket, $key));
-        return sprintf('%s/delete/%s', static::RS_HOST, $encoded);
+        $encoded = $this->encode($scope);
+        return sprintf('/delete/%s', $encoded);
     }
 
-    public function copyUri($bucketSrc, $keySrc, $bucketDest, $keyDest)
+    public function copyUri($uriSrc, $uriDest, $force = false)
     {
-        return static::RS_HOST . 
-            "/copy/" . $this->encode("$bucketSrc:$keySrc") . 
-            "/" . $this->encode("$bucketDest:$keyDest");
+        return sprintf(
+            '/copy/%s/%s/force/%s', 
+            $this->encode($uriSrc),
+            $this->encode($uriDest),
+            $force ? 'true' : 'false'
+        );
     }
 
-    public function moveUri($bucketSrc, $keySrc, $bucketDest, $keyDest)
+    public function moveUri($uriSrc, $uriDest)
     {
-        return static::RS_HOST . 
-            "/move/" . $this->encode("$bucketSrc:$keySrc") .
-            "/" . $this->encode("$bucketDest:$keyDest");
+        return sprintf(
+            '/move/%s/%s',
+            $this->encode($uriSrc),
+            $this->encode($uriDest)
+        );
+    }
+
+    public function listUri(array $params)
+    {
+        /*
+        $needEncode = ['bucket', 'prefix', 'delimiter'];
+        foreach ($params as $key => $value) {
+            if (empty($value)) {
+                unset($params[$key]);
+                continue;
+            }
+
+            if (in_array($key, $needEncode)) {
+                $params[$key] = $this->encode($value);
+            }
+        }
+        */
+        $query = http_build_query($params);
+        return sprintf('/list?%s', $query);
+    }
+
+    public function batchUri()
+    {
+        return '/batch'; 
     }
 
     public function encode($string)
